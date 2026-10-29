@@ -1,0 +1,19 @@
+# 依赖
+node_modules/
+
+# Expo
+.expo/
+dist/
+
+# WebView 编辑器子项目（独立 npm 包，构建产物不提交）
+webview-editor/node_modules/
+webview-editor/dist/
+
+# 由 npm run build:editor 生成
+assets/editor.html
+
+# 杂项
+npm-debug.*
+*.log
+*.orig
+.DS_Store

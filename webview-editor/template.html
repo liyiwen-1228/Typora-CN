@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Editor</title>
+  <style>
+    /* ---------- 主题变量（浅色） ---------- */
+    :root {
+      --bg: #ffffff;
+      --fg: #26282e;
+      --muted: #8a8d96;
+      --border: #e6e7eb;
+      --accent: #2f6fed;
+      --code-bg: #f4f5f7;
+      --block-bg: #f8f9fb;
+
+      --cm-bg: #ffffff;
+      --cm-fg: #26282e;
+      --cm-gutter: #b0b3bd;
+      --cm-active-line: rgba(0, 0, 0, 0.045);
+      --cm-selection: rgba(47, 111, 237, 0.18);
+      --cm-accent: #2f6fed;
+      --cm-heading: #171922;
+      --cm-code: #b6376a;
+      --cm-code-bg: rgba(27, 31, 35, 0.06);
+      --cm-quote: #7a7f8c;
+      --cm-meta: #9aa0ab;
+      --cm-url: #0550ae;
+      --cm-kw: #cf222e;
+      --cm-str: #0a3069;
+      --cm-num: #0550ae;
+      --cm-comment: #6e7781;
+      --cm-type: #8250df;
+      --cm-fn: #8250df;
+    }
+
+    /* ---------- 主题变量（深色） ---------- */
+    html.dark {
+      --bg: #1e1f24;
+      --fg: #d8dae2;
+      --muted: #8b8e99;
+      --border: #33353c;
+      --accent: #5b8def;
+      --code-bg: #26272e;
+      --block-bg: #23242b;
+
+      --cm-bg: #1e1f24;
+      --cm-fg: #d8dae2;
+      --cm-gutter: #4d505b;
+      --cm-active-line: rgba(255, 255, 255, 0.05);
+      --cm-selection: rgba(91, 141, 239, 0.32);
+      --cm-accent: #5b8def;
+      --cm-heading: #f0f1f5;
+      --cm-code: #e593b9;
+      --cm-code-bg: rgba(255, 255, 255, 0.08);
+      --cm-quote: #9aa0ab;
+      --cm-meta: #7a7f8c;
+      --cm-url: #79c0ff;
+      --cm-kw: #ff7b72;
+      --cm-str: #a5d6ff;
+      --cm-num: #79c0ff;
+      --cm-comment: #8b949e;
+      --cm-type: #d2a8ff;
+      --cm-fn: #d2a8ff;
+    }
+
+    * {
+      -webkit-text-size-adjust: 100%;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    body {
+      /* 基础字号 ≥16px，避免 iOS 聚焦输入框时自动放大 */
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+      font-size: 16px;
+    }
+
+    #editor {
+      height: 100%;
+    }
+
+    /* ---------- 预览模式 ---------- */
+    #preview {
+      display: none;
+      box-sizing: border-box;
+      height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 18px 48px;
+      word-wrap: break-word;
+    }
+
+    #preview h1,
+    #preview h2,
+    #preview h3,
+    #preview h4,
+    #preview h5,
+    #preview h6 {
+      margin: 1.2em 0 0.5em;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    #preview h1 {
+      font-size: 1.6em;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.3em;
+    }
+
+    #preview h2 {
+      font-size: 1.35em;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.25em;
+    }
+
+    #preview h3 {
+      font-size: 1.18em;
+    }
+
+    #preview h4,
+    #preview h5,
+    #preview h6 {
+      font-size: 1.05em;
+    }
+
+    #preview p {
+      margin: 0.6em 0;
+      line-height: 1.8;
+    }
+
+    #preview a {
+      color: var(--accent);
+    }
+
+    #preview code {
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      background: var(--code-bg);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.9em;
+    }
+
+    #preview pre {
+      background: var(--code-bg);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    #preview pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.88em;
+    }
+
+    #preview blockquote {
+      margin: 0.8em 0;
+      padding: 4px 14px;
+      border-left: 4px solid var(--accent);
+      color: var(--muted);
+      background: var(--block-bg);
+      border-radius: 0 6px 6px 0;
+    }
+
+    #preview ul,
+    #preview ol {
+      padding-left: 1.6em;
+      line-height: 1.8;
+      margin: 0.5em 0;
+    }
+
+    #preview li {
+      margin: 0.2em 0;
+    }
+
+    #preview img {
+      max-width: 100%;
+      border-radius: 6px;
+    }
+
+    #preview table {
+      border-collapse: collapse;
+      margin: 0.8em 0;
+      width: 100%;
+      font-size: 0.92em;
+    }
+
+    #preview th,
+    #preview td {
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    #preview th {
+      background: var(--block-bg);
+      font-weight: 600;
+    }
+
+    #preview hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5em 0;
+    }
+
+    #preview input[type='checkbox'] {
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+  <div id="preview"></div>
+  <script>/* __EDITOR_JS__ */</script>
+</body>
+</html>

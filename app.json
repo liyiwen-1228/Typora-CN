@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Typora CN",
+    "slug": "typora-cn",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "supportsTablet": true,
+    "ios": {
+      "bundleIdentifier": "com.typoracn.app",
+      "infoPlist": {
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
+      }
+    },
+    "android": {
+      "package": "com.typoracn.app"
+    }
+  }
+}
