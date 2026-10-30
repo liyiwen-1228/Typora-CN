@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Shortcut Recorder</title>
+<style>
+html, body { margin: 0; height: 100%; background: transparent; }
+#hint { color: #8a8d96; font: 14px -apple-system, 'PingFang SC', sans-serif; display: flex; height: 100%; align-items: center; justify-content: center; text-align: center; padding: 12px; }
+</style>
+</head>
+<body>
+<div id="hint">请按下新的快捷键组合（需含 Mod 键）<br/>Esc 取消</div>
+<script>"use strict";(()=>{function o(e){let t=window;t.ReactNativeWebView&&t.ReactNativeWebView.postMessage(JSON.stringify(e))}var n=new Set(["Shift","Meta","Alt","Control","CapsLock","Dead"]);window.addEventListener("keydown",e=>{if(e.preventDefault(),e.key==="Escape"){o({type:"recordKey",combo:"",cancel:!0});return}if(n.has(e.key))return;let t=[];(e.metaKey||e.ctrlKey)&&t.push("Mod"),e.altKey&&t.push("Alt"),e.shiftKey&&t.push("Shift"),t.push(e.key.length===1?e.key.toLowerCase():e.key),o({type:"recordKey",combo:t.join("-")})});o({type:"ready"});})();
+</script>
+</body>
+</html>

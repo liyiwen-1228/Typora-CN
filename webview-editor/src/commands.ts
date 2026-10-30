@@ -1,9 +1,18 @@
 import { EditorView } from '@codemirror/view';
+import { redo, undo } from '@codemirror/commands';
+import { openSearchPanel } from '@codemirror/search';
 import type { EditorAction } from './protocol';
 
 /** 工具栏动作入口：按动作分发到 CodeMirror 命令或自定义实现 */
 export function runAction(view: EditorView, action: EditorAction): boolean {
   switch (action) {
+    case 'find':
+      openSearchPanel(view);
+      return true;
+    case 'undo':
+      return undo(view);
+    case 'redo':
+      return redo(view);
     case 'bold':
       return wrapInline(view, '**');
     case 'italic':
@@ -42,9 +51,151 @@ export function runAction(view: EditorView, action: EditorAction): boolean {
       return wrapBlock(view, '```\n', '\n```\n');
     case 'hr':
       return insertHorizontalRule(view);
+    case 'clearFormat':
+      return clearFormat(view);
+    case 'formatTable':
+      return formatTable(view);
     default:
       return false;
   }
+}
+
+/** 清除格式（⌘\）：移除选中内容的行内标记与所选行的行首标记 */
+function clearFormat(view: EditorView): boolean {
+  const { from, to } = view.state.selection.main;
+  const hasSelection = to > from;
+  let text = view.state.sliceDoc(from, to);
+  if (!hasSelection) {
+    // 无选中时对当前词清除行内标记
+    const line = view.state.doc.lineAt(from);
+    const word = line.text.slice(0, from - line.from).match(/[\w\u3400-\u9fff\u3040-\u30ff]+$/);
+    const wordEnd = line.text.slice(to - line.from).match(/^[\w\u3400-\u9fff\u3040-\u30ff]+/);
+    const start = from - (word ? word[0].length : 0);
+    const end = to + (wordEnd ? wordEnd[0].length : 0);
+    const selected = view.state.sliceDoc(start, end);
+    const cleaned = stripInlineMarks(selected);
+    if (cleaned === selected) return true;
+    view.dispatch({
+      changes: { from: start, to: end, insert: cleaned },
+      selection: { anchor: start + cleaned.length },
+    });
+    return true;
+  }
+  const inlineStripped = stripInlineMarks(text);
+  // 逐行剥离行首标记（标题/引用/列表/任务框）
+  const lineStripped = inlineStripped
+    .split('\n')
+    .map((line) => line.replace(/^(\s*)(#{1,6}\s+|>\s?|[-*+]\s\[[ xX]\]\s+|[-*+]\s+|\d+[.)]\s+)/, '$1'))
+    .join('\n');
+  view.dispatch({
+    changes: { from, to, insert: lineStripped },
+    selection: { anchor: from + lineStripped.length },
+  });
+  return true;
+}
+
+/** 移除行内 Markdown 标记，保留内容文字 */
+function stripInlineMarks(text: string): string {
+  let out = text;
+  for (let i = 0; i < 3; i++) {
+    out = out
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/\*([^*\n]+)\*/g, '$1')
+      .replace(/_([^_\n]+)_/g, '$1')
+      .replace(/~~([^~]+)~~/g, '$1')
+      .replace(/==([^=]+)==/g, '$1')
+      .replace(/`([^`\n]+)`/g, '$1')
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/\[\[([^\]]+)\]\]/g, '$1');
+  }
+  return out;
+}
+
+/** 表格美化（EX-03）：光标所在表格列宽对齐 + 对齐标记规范化 */
+function formatTable(view: EditorView): boolean {
+  const { from } = view.state.selection.main;
+  const startLine = view.state.doc.lineAt(from);
+  const isTableRow = (text: string) => /^\s*\|.*\|\s*$/.test(text);
+  const isSepRow = (text: string) =>
+    /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(text) && text.includes('-');
+  if (!isTableRow(startLine.text)) return false;
+
+  let first = startLine.number;
+  while (first > 1 && isTableRow(view.state.doc.line(first - 1).text)) first -= 1;
+  let last = startLine.number;
+  const total = view.state.doc.lines;
+  while (last < total && isTableRow(view.state.doc.line(last + 1).text)) last += 1;
+
+  const lines: string[] = [];
+  for (let n = first; n <= last; n++) lines.push(view.state.doc.line(n).text);
+  if (lines.length < 2 || !isSepRow(lines[1])) return false;
+
+  const splitRow = (text: string) => {
+    const body = text.trim().replace(/^\|/, '').replace(/\|$/, '');
+    return body.split('|').map((cell) => cell.trim());
+  };
+  const header = splitRow(lines[0]);
+  const cols = header.length;
+  const alignments = splitRow(lines[1]).map((cell) => {
+    const left = cell.startsWith(':');
+    const right = cell.endsWith(':');
+    if (left && right) return 'center' as const;
+    if (right) return 'right' as const;
+    return 'left' as const;
+  });
+  const rows = lines.slice(2).map(splitRow).filter((cells) => cells.length > 0);
+
+  // 显示宽度：CJK/全角按 2 计
+  const width = (text: string) => {
+    let w = 0;
+    for (const ch of text) {
+      w += /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffff]/.test(ch)
+        ? 2
+        : 1;
+    }
+    return w;
+  };
+  const widths: number[] = new Array(cols).fill(0);
+  const allRows = [header, ...rows];
+  for (const cells of allRows) {
+    for (let c = 0; c < cols; c++) {
+      widths[c] = Math.max(widths[c], width(cells[c] ?? ''));
+    }
+  }
+  const pad = (text: string, col: number) => {
+    const w = width(text);
+    const spaces = Math.max(0, widths[col] - w);
+    if (alignments[col] === 'center') {
+      const left = Math.floor(spaces / 2);
+      const right = spaces - left;
+      return ' '.repeat(left) + text + ' '.repeat(right);
+    }
+    if (alignments[col] === 'right') return ' '.repeat(spaces) + text;
+    return text + ' '.repeat(spaces);
+  };
+  const sepMark = (col: number) => {
+    const marks = '-'.repeat(Math.max(3, widths[col]));
+    if (alignments[col] === 'center') return `:${marks}:`;
+    if (alignments[col] === 'right') return `${marks}:`;
+    return marks;
+  };
+  const buildRow = (cells: string[]) =>
+    `| ${Array.from({ length: cols }, (_, c) => pad(cells[c] ?? '', c)).join(' | ')} |`;
+
+  const output = [
+    buildRow(header),
+    `| ${Array.from({ length: cols }, (_, c) => sepMark(c)).join(' | ')} |`,
+    ...rows.map(buildRow),
+  ].join('\n');
+
+  const fromPos = view.state.doc.line(first).from;
+  const toPos = view.state.doc.line(last).to;
+  view.dispatch({
+    changes: { from: fromPos, to: toPos, insert: output },
+    selection: { anchor: fromPos + output.length },
+  });
+  return true;
 }
 
 /** 行首前缀整体切换：所有选中行都已有该前缀 → 全部移除，否则全部添加 */

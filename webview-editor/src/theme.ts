@@ -13,9 +13,9 @@ export const editorTheme = EditorView.theme({
     outline: 'none',
   },
   '.cm-scroller': {
-    fontFamily: "'SF Mono', Menlo, Consolas, 'PingFang SC', monospace",
-    lineHeight: '1.7',
-    fontSize: '16px',
+    fontFamily: 'var(--cm-font-family)',
+    lineHeight: 'var(--cm-line-height)',
+    fontSize: 'var(--cm-font-size)',
   },
   '.cm-content': {
     caretColor: 'var(--cm-accent)',

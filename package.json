@@ -1,6 +1,6 @@
 {
   "name": "typora-cn",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:editor": "npm --prefix webview-editor install && npm --prefix webview-editor run build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:all": "tsc --noEmit && tsc --noEmit -p webview-editor/tsconfig.json",
+    "test": "node webview-editor/test/preview.test.mjs && node test/unit.test.mjs && node test/sample-smoke.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -19,7 +21,11 @@
     "expo-asset": "~58.0.19",
     "expo-document-picker": "~58.0.4",
     "expo-file-system": "~58.0.13",
+    "expo-image-picker": "^58.0.10",
+    "expo-print": "^58.0.8",
+    "expo-sharing": "^58.0.21",
     "expo-status-bar": "~58.0.4",
+    "opencc-js": "^1.4.2",
     "react": "19.3.0",
     "react-native": "0.88.1",
     "react-native-safe-area-context": "~5.10.1",

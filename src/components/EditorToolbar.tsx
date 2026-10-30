@@ -37,8 +37,10 @@ const TOOLS: ToolDef[] = [
   { action: 'orderedList', icon: 'format-list-numbered' },
   { action: 'taskList', icon: 'format-list-checks' },
   { action: 'table', icon: 'table' },
+  { action: 'formatTable', icon: 'table-arrow-right' },
   { action: 'codeBlock', icon: 'code-braces' },
   { action: 'hr', icon: 'minus' },
+  { action: 'clearFormat', icon: 'format-clear' },
 ];
 
 interface EditorToolbarProps {
