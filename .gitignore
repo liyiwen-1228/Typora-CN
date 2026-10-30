@@ -17,3 +17,6 @@ npm-debug.*
 *.log
 *.orig
 .DS_Store
+
+# npm 本地缓存（沙箱环境下 --cache 重定向产物，纯缓存可删）
+.npm-cache/
